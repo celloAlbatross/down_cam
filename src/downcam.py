@@ -46,9 +46,9 @@ def  delNoise():
 			sq_found.append([real_area,(x,y),90-Oreintation(M)[0]*180/math.pi])
 			cv2.drawContours(result,[box],0,(0,255,0),1,8)
 	
-	if len(sq_found) == 0:
-		not_found(m)
-	else :
+    if len(sq_found) == 0:
+	    not_found(m)
+    else:
 		sq_found = sorted(sq_found,key = itemgetter(0))
 		x,y = sq_found[-1][1]
 		cv2.circle(result,(int(x),int(y)), 5,(0,0,255), -1)
@@ -59,31 +59,39 @@ def  delNoise():
 		m.angle = sq_found[-1][2] 
 		m.area = sq_found[-1][0] / (width*height)
 		m.appear = True
+    cv2.imshow('result',result)
+    k = cv2.waitKey(1) & 0xff
+    if k == ord('q'):
+        rospy.signal_shutdown('')
+    return m
 
-	cv2.imshow('result',result)
-	k = cv2.waitKey(1) & 0xff
-	if k == ord('q'):
-		rospy.signal_shutdown('')
-	#print m
-	return m
 def findContours():
     global contours,img,orange
-    # print (img)
+    kernel = np.ones((5,5),np.uint8)
     while not rospy.is_shutdown():
         while img is None:
             print("img None")
         im = img.copy()
-        hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+        blur = cv2.blur(im, (5,5))
+        hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
         orange = cv2.inRange(hsv, lower_orange, upper_orange)
-        # cv2.imshow('img',orange   )
-        # cv2.waitKey(30)
+        erosion = cv2.erode(orange, kernel, iterations = 1)
+        dilation = cv2.dilate(orange, kernel, iterations = 1)
+        closing = cv2.morphologyEx(orange, cv2.MORPH_CLOSE, kernel)
+        opening = cv2.morphologyEx(orange, cv2.MORPH_OPEN, kernel)
+
+        # cv2.imshow('img',orange )
         imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
         ret,thresh = cv2.threshold(orange,127,255,0)
         _ , contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,
                                                         cv2.CHAIN_APPROX_SIMPLE)
         result = cv2.drawContours(im, contours, -1, (0,255,0), 3)
-        cv2.imshow('img',result)
-        # cv2.imshow('img',hsv)
+        # cv2.imshow('img',result)
+        cv2.imshow("blur", blur)
+        cv2.imshow("erosion",erosion)
+        cv2.imshow("dilation",dilation)
+        cv2.imshow("closing",closing)
+        cv2.imshow("opening", opening)
         cv2.waitKey(30)
 
 def callback(msg):
@@ -91,23 +99,15 @@ def callback(msg):
 
     arr = np.fromstring(msg.data, np.uint8)
     img = cv2.imdecode(arr, 1)
-    # hsv = cv2.cvtColor(img, cv2.COLOR_BRG2HSV)
-    # orange = cv2.inRange(hsv, lower_orange,upper_orange)
-
-    # cv2.imshow('path',img)
-
-    # cv2.waitKey(1) #& 0xFF == ord('q'):
     
 def findPath():
     global img
     findContours()
-    # cv2.imshow('img',img)
-    # cv2.waitKey(30)
-    
 
 if __name__ == '__main__':
     rospy.init_node('playback')
     topic = '/rightcam_bottom/image_raw/compressed'
     rospy.Subscriber(topic, CompressedImage,callback) 
     findPath()
+    # delNoise()
             
