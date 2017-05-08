@@ -12,10 +12,24 @@ upper_red = np.array([40,200,255])
 img = None 
 contours = None
 orange = None
+closing = None
 
+def find_path():
+    global contours,img
+
+    for c in contours:
+        rect = (x,y),(ww,hh),angle = cv2.minAreaRect(c)
+        area = ww*hh
+        # print("area: ")
+        # print(ww)
+        if area <= 20 or area >= 1000 or ww <= 10:
+            continue 
+        real_area = cv2.contourArea(c)
+        print("real_tul_area: ")
+        print(real_area)
 
 def findColors():
-    global contours,img,orange
+    global contours,img,orange, closing
     kernel = np.ones((5,5),np.uint8)
     while not rospy.is_shutdown():
         while img is None:
@@ -33,9 +47,10 @@ def findColors():
         # cv2.imshow('img',orange )
         imgray = cv2.cvtColor(blur,cv2.COLOR_BGR2GRAY)
         ret,thresh = cv2.threshold(closing,127,255,0)
-        _ , contours, hierarchy = cv2.findContours(thresh,1,
-                                                        2)
+        _ , contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,
+                                                        cv2.CHAIN_APPROX_NONE)
         result = cv2.drawContours(im, contours, -1, (0,255,255), 3)
+        find_path()
         # cnt = contours[0]
         # rect = cv2.minAreaReact(cnt)
         # box = cv2.boxPoint(rect)
@@ -43,7 +58,6 @@ def findColors():
         # res1 = cv2.drawContours(img, [box],0,(0,0,255) ,2)
         
         # print(contours)
-        print(contours)
         # cv2.imshow('orange', orange)
         cv2.imshow('img',result)
         # cv2.imshow("blur", blur2)
@@ -66,5 +80,6 @@ if __name__ == '__main__':
     topic = '/rightcam_bottom/image_raw/compressed'
     rospy.Subscriber(topic, CompressedImage,callback) 
     findColors()
+    # find_path()
     # delNoise()
             
