@@ -25,8 +25,11 @@ def find_path():
         if area <= 20 or area >= 1000 or ww <= 10:
             continue 
         real_area = cv2.contourArea(c)
-        print("real_tul_area: ")
-        print(real_area)
+        box = cv2.boxPoints(rect)
+        box = np.int0(box)
+        cv2.drawContours(img, [box], -1,(0,0,0),1,8)
+
+    # cv2.imshow('img' ,img)
 
 def findColors():
     global contours,img,orange, closing
